@@ -1,115 +1,46 @@
 <?php
+require_once "../app/models/Pedido.php";
+require_once "../app/models/DetallePedido.php";
+require_once "../app/models/Pago.php";
+
 class PagoService
 {
-    public function iniciarDatos()
+    public function pedidosPendientes()
     {
-        if (isset($_SESSION['pedidos'])) {
-            return;
+        $modelo = new Pedido();
+        $detalle = new DetallePedido();
+        $pedidos = $modelo->paraCobrar();
+        foreach ($pedidos as $i => $p) {
+            $pedidos[$i]['total'] = $detalle->total($p['id_pedido']);
         }
-        $_SESSION['pedidos'] = array(
-            array(
-                'id_pedido' => 101, 'mesa' => 3, 'estado' => 'listo',
-                'items' => array(
-                    array('plato' => 'Arroz con pollo', 'cantidad' => 2, 'precio' => 18),
-                    array('plato' => 'Chicha morada', 'cantidad' => 1, 'precio' => 12),
-                ),
-            ),
-            array(
-                'id_pedido' => 102, 'mesa' => 5, 'estado' => 'listo',
-                'items' => array(
-                    array('plato' => 'Lomo saltado', 'cantidad' => 1, 'precio' => 25),
-                    array('plato' => 'Ceviche', 'cantidad' => 2, 'precio' => 30),
-                ),
-            ),
-        );
-        $_SESSION['pagos'] = array();
-        $_SESSION['ventas'] = array();
+        return $pedidos;
     }
 
-    public function calcularTotal($items)
+    public function cobrar($idPedido, $idCajero, $metodo, $montoTexto)
     {
-        $total = 0;
-        foreach ($items as $item) {
-            $total = $total + ($item['cantidad'] * $item['precio']);
+        $metodos = listaMetodos();
+        if (!isset($metodos[$metodo])) {
+            throw new Exception('Elige un método de pago válido.', 1);
         }
-        return $total;
-    }
-
-    public function pedidosListos()
-    {
-        $this->iniciarDatos();
-        $listos = array();
-        foreach ($_SESSION['pedidos'] as $pedido) {
-            if ($pedido['estado'] == 'listo') {
-                $pedido['total'] = $this->calcularTotal($pedido['items']);
-                $listos[] = $pedido;
-            }
+        if (!esNumero($montoTexto) || $montoTexto <= 0) {
+            throw new Exception('El monto recibido debe ser un número mayor a 0.', 1);
         }
-        return $listos;
-    }
-
-    public function buscarPedido($id)
-    {
-        foreach ($this->pedidosListos() as $pedido) {
-            if ($pedido['id_pedido'] == $id) {
-                return $pedido;
-            }
+        $modeloPedido = new Pedido();
+        $pedido = $modeloPedido->buscar($idPedido);
+        if ($pedido === null || $pedido['estado'] !== 'listo') {
+            throw new Exception('El pedido no existe, no está listo o ya fue pagado.', 2);
         }
-        return null;
-    }
-
-    public function cobrar($id_pedido, $metodo, $monto_recibido)
-    {
-        $pedido = $this->buscarPedido($id_pedido);
-
-        if ($pedido == null) {
-            return array('ok' => false, 'error' => 'El pedido no existe o ya fue pagado.');
+        $detalle = new DetallePedido();
+        $total = $detalle->total($idPedido);
+        $recibido = round((float) $montoTexto, 2);
+        if ($recibido < $total) {
+            throw new Exception('Pago incompleto: la cuenta es ' . soles($total) . ' y se recibió ' . soles($recibido) . '.', 1);
         }
-        if ($monto_recibido < $pedido['total']) {
-            return array('ok' => false, 'error' => 'Pago incompleto: la cuenta es S/ ' . $pedido['total']);
+        if ($metodo !== 'efectivo' && abs($recibido - $total) > 0.001) {
+            throw new Exception('Con ' . $metodos[$metodo] . ' el monto debe ser exactamente ' . soles($total) . '.', 1);
         }
-
-        $vuelto = 0;
-        if ($metodo == 'efectivo') {
-            $vuelto = $monto_recibido - $pedido['total'];
-        }
-
-        $id_pago = count($_SESSION['pagos']) + 1;
-        $id_venta = count($_SESSION['ventas']) + 1;
-
-        $pago = new Pago($id_pago, $id_pedido, $pedido['total'], $metodo, $monto_recibido, $vuelto);
-        $venta = new Venta($id_venta, $id_pedido, $id_pago, $pedido['total']);
-
-        $_SESSION['pagos'][] = (array) $pago;
-        $_SESSION['ventas'][] = array(
-            'id_venta' => $venta->id_venta,
-            'numero' => $venta->numero_comprobante,
-            'fecha' => $venta->fecha_venta,
-            'mesa' => $pedido['mesa'],
-            'items' => $pedido['items'],
-            'total' => $venta->total,
-            'metodo' => $metodo,
-            'recibido' => $monto_recibido,
-            'vuelto' => $vuelto,
-        );
-
-        foreach ($_SESSION['pedidos'] as $i => $p) {
-            if ($p['id_pedido'] == $id_pedido) {
-                $_SESSION['pedidos'][$i]['estado'] = 'pagado';
-            }
-        }
-
-        return array('ok' => true, 'id_venta' => $id_venta);
-    }
-
-    public function buscarVenta($id_venta)
-    {
-        $this->iniciarDatos();
-        foreach ($_SESSION['ventas'] as $venta) {
-            if ($venta['id_venta'] == $id_venta) {
-                return $venta;
-            }
-        }
-        return null;
+        $vuelto = $metodo === 'efectivo' ? round($recibido - $total, 2) : 0;
+        $pago = new Pago();
+        return $pago->cobrar($idPedido, $idCajero, $pedido['id_mesa'], $total, $recibido, $vuelto, $metodo);
     }
 }
