@@ -1,31 +1,64 @@
 <?php
-require_once __DIR__ . '/../../config/conexion.php';
+require_once "../app/config/Conn.php";
 
-class MovimientoInventario {
-    private $conn;
-    private $tabla = "movimientos_inventario";
-
-    public function __construct() {
-        $this->conn = Conexion::conectar();
+class MovimientoInventario
+{
+    public function registrar($idInsumo, $idUsuario, $idPedido, $tipo, $cantidad, $motivo)
+    {
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare('INSERT INTO movimientos_inventario (id_insumo, id_usuario, id_pedido, tipo, cantidad, motivo, fecha_movimiento) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute(array($idInsumo, $idUsuario, $idPedido, $tipo, $cantidad, $motivo, date('Y-m-d H:i:s')));
+        $nuevoId = (int) $conexion->lastInsertId();
+        $conn->cerrar();
+        return $nuevoId;
     }
 
-    public function listarHistorial() {
-        $sql = "SELECT m.id, i.nombre AS insumo, m.tipo, m.cantidad, m.motivo, m.fecha FROM " . $this->tabla . " m INNER JOIN insumos i ON m.insumo_id = i.id ORDER BY m.fecha DESC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function listar($idInsumo = 0, $tipo = '', $fecha = '')
+    {
+        $sql = 'SELECT m.*, i.nombre AS insumo, i.unidad_medida, u.nombre AS usuario_nombre, u.apellido AS usuario_apellido
+                FROM movimientos_inventario m JOIN insumos i ON i.id_insumo = m.id_insumo JOIN usuarios u ON u.id_usuario = m.id_usuario WHERE 1 = 1';
+        $parametros = array();
+        if ($idInsumo > 0) {
+            $sql .= ' AND m.id_insumo = ?';
+            $parametros[] = $idInsumo;
+        }
+        if ($tipo !== '') {
+            $sql .= ' AND m.tipo = ?';
+            $parametros[] = $tipo;
+        }
+        if ($fecha !== '') {
+            $sql .= ' AND DATE(m.fecha_movimiento) = ?';
+            $parametros[] = $fecha;
+        }
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare($sql . ' ORDER BY m.fecha_movimiento DESC, m.id_movimiento DESC LIMIT 200');
+        $stmt->execute($parametros);
+        $resultado = $stmt->fetchAll();
+        $conn->cerrar();
+        return $resultado;
     }
 
-    public function registrarMovimiento($insumoId, $tipo, $cantidad, $motivo) {
-        $sql = "INSERT INTO " . $this->tabla . " (insumo_id, tipo, cantidad, motivo) VALUES (:insumo_id, :tipo, :cantidad, :motivo)";
-        $stmt = $this->conn->prepare($sql);
+    public function resumenDelDia($fecha)
+    {
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare("SELECT i.nombre, i.unidad_medida,
+                    SUM(CASE WHEN m.tipo = 'ingreso' AND m.id_pedido IS NULL THEN m.cantidad ELSE 0 END) AS ingresos,
+                    SUM(CASE WHEN m.tipo = 'salida' THEN m.cantidad WHEN m.tipo = 'ingreso' AND m.id_pedido IS NOT NULL THEN -m.cantidad ELSE 0 END) AS consumo,
+                    SUM(CASE WHEN m.tipo = 'merma' THEN m.cantidad ELSE 0 END) AS mermas
+             FROM movimientos_inventario m JOIN insumos i ON i.id_insumo = m.id_insumo
+             WHERE DATE(m.fecha_movimiento) = ? GROUP BY i.id_insumo, i.nombre, i.unidad_medida ORDER BY i.nombre");
+        $stmt->execute(array($fecha));
+        $resultado = $stmt->fetchAll();
+        $conn->cerrar();
+        return $resultado;
+    }
 
-        $stmt->bindValue(":insumo_id", $insumoId, PDO::PARAM_INT);
-        $stmt->bindValue(":tipo", $tipo, PDO::PARAM_STR);
-        $stmt->bindValue(":cantidad", $cantidad);
-        $stmt->bindValue(":motivo", htmlspecialchars(strip_tags(trim($motivo))), PDO::PARAM_STR);
-
-        return $stmt->execute();
+    public function registrarEn($conexion, $idInsumo, $idUsuario, $idPedido, $tipo, $cantidad, $motivo)
+    {
+        $stmt = $conexion->prepare('INSERT INTO movimientos_inventario (id_insumo, id_usuario, id_pedido, tipo, cantidad, motivo, fecha_movimiento) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute(array($idInsumo, $idUsuario, $idPedido, $tipo, $cantidad, $motivo, date('Y-m-d H:i:s')));
     }
 }
-?>
