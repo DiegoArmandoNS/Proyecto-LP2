@@ -32,5 +32,50 @@ class Venta
         return $resultado;
     }
 
-    
+    public function platosMasVendidos($fecha)
+    {
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare('SELECT pl.nombre, SUM(d.cantidad) AS cantidad, SUM(d.subtotal) AS importe
+                                FROM ventas v JOIN detalle_pedidos d ON d.id_pedido = v.id_pedido JOIN platos pl ON pl.id_plato = d.id_plato
+                                WHERE DATE(v.fecha_venta) = ? GROUP BY pl.id_plato, pl.nombre ORDER BY cantidad DESC, 
+                                importe DESC LIMIT 10');
+        $stmt->execute(array($fecha));
+        $resultado = $stmt->fetchAll();
+        $conn->cerrar();
+        return $resultado;
+    }
+
+    public function totalesPorMetodo($fecha) 
+    {
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare('SELECT pg.metodo_pago, COUNT(*) AS ventas, SUM(v.total) AS total
+                                FROM ventas v JOIN pagos pg ON pg.id_pago = v.id_pago
+                                WHERE DATE(v.fecha_venta) = ? GROUP BY pg.metodo_pago');
+        $stmt->execute(array($fecha));
+        $resultado = $stmt->fetchAll();
+        $conn->cerrar();
+        return $resultado;
+    }
+
+    public function resumenDelDia($fecha) 
+    {
+        $ventas = $this->listarPorFecha($fecha);
+        $total = 0;
+        foreach ($ventas as $v) {
+            $total += $v['total'];
+        }
+        $metodos = array();
+        foreach (listaMetodos() as $clave => $nombre) {
+            $metodos[$clave] = array('nombre' => $nombre, 'ventas' => 0, 'total' => 0);
+        }
+        foreach ($this->totalesPorMetodo($fecha) as $fila) {
+            $metodos[$fila['metodo_pago']]['ventas'] = $fila['ventas'];
+            $metodos[$fila['metodo_pago']]['total'] = $fila['total'];
+        }
+        $cantidad = count($ventas);
+        return array('ventas' => round($total, 2), 'cantidad' => $cantidad > 0 ? round($total / $cantidad, 2) : 0,
+                     'platos' => $this->platosMasVendidos($fecha), 'metodos' => $metodos);
+    }
 }
