@@ -59,6 +59,19 @@ class Venta
         return $resultado;
     }
 
+    public function totalPorCajeros($fecha)
+    {
+        $conn = new Conn();
+        $conexion = $conn->conectar();
+        $stmt = $conexion->prepare('SELECT u.nombre, u.apellido, COUNT(*) AS ventas, SUM(v.total) AS total
+                FROM vemtas v JOIN pagos pg ON pg.id_pago = v.id_pago JOIN usuarios u ON u.id_usuario = pg.id_usuario
+                WHERE DATE(v.fecha_venta) = ? GROUP BY u.id_usuario, u.apellido ORDER BY total DESC');
+        $stmt->execute(array($fecha));
+        $resultado = $stmt->fetchALL();
+        $conn->cerrar();
+        return $resultado;
+    }
+
     public function resumenDelDia($fecha) 
     {
         $ventas = $this->listarPorFecha($fecha);
