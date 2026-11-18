@@ -29,6 +29,14 @@
     <?php } ?>
 </table>
 
+<h2>Ventas por cajero</h2>
+<table>
+    <tr><th>Cajero</th><th class="der">Ventas</th><th class="der">Total</th></tr>
+    <?php foreach ($reporte['cajeros'] as $c) { ?>
+        <tr><td><?php echo e($c['nombre'] . ' ' . $c['apellido']); ?></td><td class="der"><?php echo (int) $c['ventas']; ?></td><td class="der"><?php echo soles($c['total']); ?></td></tr>
+    <?php } ?>
+</table>
+
 <h2>Detalle de ventas</h2>
 <table>
     <tr><th>Comprobante</th><th>Hora</th><th>Mesa</th><th>Método</th><th class="der">Total</th></tr>
