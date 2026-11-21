@@ -8,11 +8,14 @@ class CartaService
     {
         $errores = array();
         if ($d['nombre'] === '') {
-            $errores[] = 'El nombre del plato es obligatorio.';}
+            $errores[] = 'El nombre del plato es obligatorio.';
+        }
         if ((int) $d['id_categoria'] <= 0) {
-            $errores[] = 'Elige una categoría.';}
+            $errores[] = 'Elige una categoría.';
+        }
         if (!esNumero($d['precio']) || $d['precio'] <= 0) {
-            $errores[] = 'El precio debe ser un número mayor a 0.';}
+            $errores[] = 'El precio debe ser un número mayor a 0.';
+        }
         return $errores;}
     public function validarIngrediente($idInsumo, $cantidad)
     {
@@ -35,7 +38,6 @@ class CartaService
             foreach ($receta->porPlato($idPlato) as $ingrediente) {
                 $necesario = round($ingrediente['cantidad'] * $item['cantidad'], 3);
                 if (!isset($consumo[$ingrediente['id_insumo']])) {
-                    $consumo[$ingrediente['id_insumo']] = 0;
-            }
+                    $consumo[$ingrediente['id_insumo']] = 0;}
                 $consumo[$ingrediente['id_insumo']] = round($consumo[$ingrediente['id_insumo']] + $necesario, 3);}}
         return $consumo;}}
