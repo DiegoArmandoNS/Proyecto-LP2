@@ -1,46 +1,31 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Lista de platos</title>
-</head>
-<body>
-    <h2>Restaurante L</h2>
-    <h3>Lista de platos</h3>
-    <a href="formulario.php">Registrar nuevo plato</a>
-    <br><br>
-    <table border="1" cellpadding="8">
+<?php require "../app/views/layouts/header.php"; ?>
+<?php $admin = rolUsuario() === 'administrador'; ?>
+<?php if ($admin) { ?>
+    <p>
+        <a href="index.php?ruta=carta/formulario">Nuevo plato</a>
+        <a href="index.php?ruta=carta/categorias">Categorías</a>
+    </p>
+<?php } ?>
+<table>
+    <tr><th>Categoría</th><th>Plato</th><th class="der">Precio</th><th>Disponible</th><?php if ($admin) { ?><th>Acciones</th><?php } ?></tr>
+    <?php foreach ($platos as $p) { ?>
         <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Categoria</th>
-            <th>Descripcion</th>
-            <th>Precio</th>
-            <th>Disponible</th>
-            <th>Acciones</th>
+            <td><?php echo e($p['categoria']); ?></td>
+            <td><b><?php echo e($p['nombre']); ?></b><br><small><?php echo e($p['descripcion']); ?></small></td>
+            <td class="der"><?php echo soles($p['precio']); ?></td>
+            <td><?php echo $p['disponible'] == 1 ? 'Sí' : '<span class="rojo">No</span>'; ?></td>
+            <?php if ($admin) { ?>
+                <td>
+                    <a href="index.php?ruta=carta/formulario&id=<?php echo $p['id_plato']; ?>">Editar</a>
+                    <a href="index.php?ruta=carta/recetas&id=<?php echo $p['id_plato']; ?>">Receta</a>
+                    <?php if ($p['disponible'] == 1) { ?>
+                        <a href="index.php?ruta=carta/disponibilidad&id=<?php echo $p['id_plato']; ?>&disponible=0">Desactivar</a>
+                    <?php } else { ?>
+                        <a href="index.php?ruta=carta/disponibilidad&id=<?php echo $p['id_plato']; ?>&disponible=1">Activar</a>
+                    <?php } ?>
+                </td>
+            <?php } ?>
         </tr>
-        <tr>
-            <td>1</td>
-            <td>Arroz con pollo</td>
-            <td>Platos principales</td>
-            <td>Arroz con pollo y ensalada</td>
-            <td>15.00</td>
-            <td>Si</td>
-            <td>
-                <button>Editar</button>
-                <button>Desactivar</button>
-            </td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>Limonada</td>
-            <td>Bebidas</td>
-            <td>Limonada natural</td>
-            <td>5.00</td>
-            <td>Si</td>
-            <td>
-                <button>Editar</button>
-                <button>Desactivar</button>
-            </td>
-        </tr>
-    </table></body></html>
+    <?php } ?>
+</table>
+<?php require "../app/views/layouts/footer.php"; ?>
