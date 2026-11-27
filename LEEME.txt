@@ -1,0 +1,48 @@
+PARTE DE CORNELIO PUENTE ANDONI LUCHIN
+Rol: Inventario de insumos
+Rama: la que creaste con tu nombre (la de Diego es nieto-solis-diego)
+
+QUE HAY EN ESTA CARPETA
+  app/models/Insumo.php
+  app/models/MovimientoInventario.php
+  app/services/InventarioService.php
+  app/controllers/InventarioController.php
+  app/views/inventario/alertas.php
+  app/views/inventario/formulario.php
+  app/views/inventario/listar.php
+  app/views/inventario/movimientos.php
+
+PASOS (en la terminal, dentro de la carpeta del repositorio Proyecto-LP2)
+1. Cambiarte a tu rama:
+     git checkout TU-RAMA
+     git pull
+2. Copiar a Proyecto-LP2 todo lo de esta carpeta MENOS este LEEME.txt.
+   Respeta las carpetas: app/models va en app/models, etc. Si pregunta si reemplazar, di que si.
+   Si tu rama tiene archivos de versiones anteriores, estos ya no existen en la estructura nueva y se borran:
+     app/config/Database.php, app/helpers/Auth.php, app/helpers/Response.php
+     (con: git rm app/config/Database.php app/helpers/Auth.php app/helpers/Response.php, solo los que existan en tu rama)
+   Los archivos de app/services con tu nombre se reemplazan por los de esta carpeta.
+3. Revisa que Git vea solo tus archivos:
+     git status
+4. Sube tu trabajo en varios commits (uno por grupo de archivos), con TU cuenta de GitHub:
+     git config user.name   (debe ser tu nombre; y git config user.email el correo de tu GitHub)
+     git add app/models
+     git commit -m "feat: agrega modelos Insumo y MovimientoInventario"
+     git add app/services
+     git commit -m "feat: agrega InventarioService con validaciones y movimientos"
+     git add app/controllers
+     git commit -m "feat: agrega InventarioController con movimientos y alertas"
+     git add app/views
+     git commit -m "feat: agrega vistas de inventario, movimientos y alertas"
+5. Subir:
+     git push origin TU-RAMA
+6. En GitHub, abre un Pull Request de tu rama hacia main (Compare & pull request).
+
+PARA PROBARLO EN TU LAPTOP
+Tu parte solo funciona junto con el resto. Para probar usa el zip Proyecto-LP2.zip (proyecto completo), importa database/01_estructura.sql y database/02_datos_prueba.sql, y abre http://localhost/Proyecto-LP2/public/index.php?ruta=login
+
+REGLAS
+- No modifiques archivos de otros integrantes. Si necesitas un cambio en ellos, avisa en el grupo.
+- Los metodos que otros modulos usan estan en docs/contratos-integracion.md: no les cambies nombre ni parametros.
+- No subas el .zip ni este LEEME.txt al repositorio.
+- El Hito 2 revisa que cada integrante tenga commits propios: haz los commits desde TU computadora y TU cuenta.
